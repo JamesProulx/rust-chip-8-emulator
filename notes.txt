@@ -1,0 +1,264 @@
+=============================================================
+ ________  ___  ___  ___  ________                ________     
+|\   ____\|\  \|\  \|\  \|\   __  \              |\   __  \    
+\ \  \___|\ \  \\\  \ \  \ \  \|\  \ ____________\ \  \|\  \   
+ \ \  \    \ \   __  \ \  \ \   ____\\____________\ \   __  \  
+  \ \  \____\ \  \ \  \ \  \ \  \___\|____________|\ \  \|\  \ 
+   \ \_______\ \__\ \__\ \__\ \__\                  \ \_______\
+    \|_______|\|__|\|__|\|__|\|__|                   \|_______|
+                                                               
+                                                              
+==============================================================
+
+MEMORY: Direct access up to 4 kilobytes of RAM
+DISPLAY: 64x32 pixels - monochrome
+PROGRAM COUNTER (PC): Points at the current instruction in memory.
+
+1x 16 bit INDEX REGISTER called "I" which is used to point at locations in memory.
+1x STACK for 16 bit addresses, which is used to call functions and return from them.
+1x 8 bit DELAY TIMER which is decremented at a rate of 60 times per second until it hits zero
+1x 8 bit SOUND TIMER which functions like the delay timer, but gives off a beeping sound as long as it is not 0
+16x 8-bit (one byte) general-purpose VARIABLE REGISTERS numbered 0-F (0-15). Called V0 - VF
+    VF is sometimes used as a flag register.
+
+------------------------------------------          
+    __  ___                               
+   /  |/  /__  ____ ___  ____  _______  __
+  / /|_/ / _ \/ __ `__ \/ __ \/ ___/ / / /
+ / /  / /  __/ / / / / / /_/ / /  / /_/ / 
+/_/  /_/\___/_/ /_/ /_/\____/_/   \__, /  
+
+4kB (4096 bytes) of memory. Index register and prgoram counter can only store this much.
+
+~ALL RAM IS WRITABLE~
+
+------------------------------------------
+
+    __________  _   ________
+   / ____/ __ \/ | / /_  __/
+  / /_  / / / /  |/ / / /   
+ / __/ / /_/ / /|  / / /    
+/_/    \____/_/ |_/ /_/     
+                        
+The CHIP-8 emulator should have a built in font, with sprite data representing hex numbers 0 through F
+
+
+0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
+0x20, 0x60, 0x20, 0x20, 0x70, // 1
+0xF0, 0x10, 0xF0, 0x80, 0xF0, // 2
+0xF0, 0x10, 0xF0, 0x10, 0xF0, // 3
+0x90, 0x90, 0xF0, 0x10, 0x10, // 4
+0xF0, 0x80, 0xF0, 0x10, 0xF0, // 5
+0xF0, 0x80, 0xF0, 0x90, 0xF0, // 6
+0xF0, 0x10, 0x20, 0x40, 0x40, // 7
+0xF0, 0x90, 0xF0, 0x90, 0xF0, // 8
+0xF0, 0x90, 0xF0, 0x10, 0xF0, // 9
+0xF0, 0x90, 0xF0, 0x90, 0x90, // A
+0xE0, 0x90, 0xE0, 0x90, 0xE0, // B
+0xF0, 0x80, 0x80, 0x80, 0xF0, // C
+0xE0, 0x90, 0x90, 0x90, 0xE0, // D
+0xF0, 0x80, 0xF0, 0x80, 0xF0, // E
+0xF0, 0x80, 0xF0, 0x80, 0x80  // F
+
+------------------------------------------------------------------------------------------------------
+    ____  _________ ____  __    _____  __
+   / __ \/  _/ ___// __ \/ /   /   \ \/ /
+  / / / // / \__ \/ /_/ / /   / /| |\  / 
+ / /_/ // / ___/ / ____/ /___/ ___ |/ /  
+/_____/___//____/_/   /_____/_/  |_/_/   
+                                         
+The display is 64 pixels wide and 32 pixels tall. Each pixel can be ON or OFF. Each pixel is one bit.
+
+
+----------------------------------------------------------------------------------------------------
+   ______________   ________ __
+  / ___/_  __/   | / ____/ //_/
+  \__ \ / / / /| |/ /   / ,<   
+ ___/ // / / ___ / /___/ /| |  
+/____//_/ /_/  |_\____/_/ |_|  
+                              
+"Last in, first out" data structure where you can either "push" or "pop" the last piece of data pushed.
+
+Can just be held in out of emulator memory.
+
+----------------------------------------------------------------------------------------------------
+
+    __ __ _______  _____    ____  ____ 
+   / //_// ____| \/ /   |  / __ \/ __ \
+  / ,<  / __/   \  / /| | / /_/ / / / /
+ / /| |/ /___   / / ___ |/ ____/ /_/ / 
+/_/ |_/_____/  /_/_/  |_/_/   /_____/  
+                                      
+
+1	2	3	4           1	2	3	C
+Q	W	E	R   --->    4	5	6	D
+A	S	D	F           7	8	9	E
+Z	X	C	V           A	0	B	F
+
+------------------------------------------------------------------------------------------------------
+
+Fetch/decode/execute loop
+
+FETCH the instruction from memory at the current PC (program counter)
+DECODE the instruction to find out what the emulator should do.
+EXECUTE the instruction and do what it tells you.
+
+|===< FETCH >===|
+An instruction is in TWO bytes - you will need to read two successive bytes from memory
+and combine them into one 16 bit instruction.
+
+|===< DECODE >===|
+
+First "nibble" = first "half-byte" -> the first hexadecimal number. The kind of instruction
+
+X: The second nibble. Used to look up one of the 16 registers (VX) from V0 through VF
+Y: The third nibble. Also used to look up one of the 16 bit registers (VY) from V0 through VF.
+N: The fourth nibble. A 4-bit number.
+NN: The second byte (third and fourth nibbles.) An 8-bit immediate number.
+NNN: The second, third, and fourth nibbles. A 12 bit immediate memory address.
+
+|===< Execute > ===|
+
+Just execute the instruction bruh, this isn't a coding tutorial, I stole all this material anyway, what do you want from me
+Go give this guy money -> https://tobiasvl.github.io/blog/write-a-chip-8-emulator/
+
+
+0NNN: Execute machine language routine
+    Do not implement
+
+00E0: Clear screen
+    Clear the display - turn all pixels off to 0.
+
+1NNN: Jump
+    This instruction sets the PC to NNN, causing the program to jump to a memory location. Do not increment PC after
+
+00EE and 2NNN: Subroutines
+    2NNN calls the subroutine at (jumps to) memory location NNN, but push the current PC to the stack first.
+    00EE is the return call -> pop the last address from the stack and set PC to it.
+
+3XNN, 4XNN, 5XY0, and 9XY0: Skip
+    3xNN skip one instruction if the value in VX is equal to NN
+    4XNN skip if they are NOT equal.
+    5XY0 skips if the values in VX and VY are equal
+    9XY0 skips if they are not equal.
+
+        (Since these only skip one instruction, they are usually followed by a JUMP call)
+
+6XNN: Set
+    Simply set the register VX to the value NN
+
+7XNN: Add
+    Add the value NN to VX
+    
+        (No overflow flag!)
+
+8XY0: Set
+    VX is set to the value of VY
+
+8XY1: Binary OR
+    VX is set to the b itwise/binary logical disjunction (OR) of VX and VY. VY is not affected.
+
+8XY2: Binary AND
+    VX is set to the bitwise/binary logical conjunction (AND) of VX and VY. VY is not affected.
+
+8XY3: Logical XOR
+    VX is set to the bitwise/binary exclusive OR (XOR) of VX and VY. VY is not affected.
+
+8XY4: Add
+    VX is set to the value of VX plus the value of VY. VY is not affected.
+
+    (THIS WILL SET THE CARRY FLAG.)
+    ---- If the result is > 255 the flag register is set to 1. If it doesn't overflow, VF is set to 0
+
+8XY5 and 8XY7: Subtract
+    8XY5 sets VX to the result of VX - VY.
+    8XY7 sets VX to the result of VY - VX.
+
+    (ALSO AFFECTS THE CARRY FLAG)
+    ---- If the first operand is larger than the second operand, VF is set to 1.
+    ---- If the second operand is larger, and we "underflow" the result VF is set to 0.
+    -------- VF is set to 1 before the subtraction, and then the subtraction either borrows from VF (setting it to 0) or it does not.
+
+8XY6 and 8XYE: Shift
+
+    OLD: First, set VX to the value of VY
+
+    8XY6: Shift VX in place RIGHT
+    8XYE: Shift VX in place LEFT
+
+    OLD: Set VF to 1 if the bit that was shifted out was 1, or 0 if it was 0.
+    
+ANNN:
+    Sets the index register I to the value NNN.
+
+BNNN:
+    Jump with offset.
+
+    OLD: Jump to NNN plus the value in V0.
+    NEW: (BXNN): It will jump the address XNN, plus the value in register VX.
+        Example: B220 jump to 220 plus the value in V2. (Quirky!)
+
+CXNN:
+    Generates a random number, binary ANDs it with the value NN, and puts the result in VX.
+        (Binary AND is important!)
+    
+DXYN: Display <- THE HARD ONE
+
+    Draw an N pixels tall sprite from the memory location the I index register is holding to the screen,
+    at the horizontal X coordinate in VX and the Y coordinate in VY.
+
+    All the pixels that are "on" in the sprite will flip the pixels on the screen that it is drawn to.
+
+    If any pixels are turned "off" by this, the VF flag register is set to 1. Otherwise, 0.
+
+    FIRST: Get the X and Y coordinates from VX and VY
+        Don't just use X and Y!
+    
+    The STARTING coordinate should wrap. If you start drawing at 68, modulus the size of the display, but then clip any
+    pixels that would have wrapped from there.
+
+EX9E and EXA1: Skip if key
+
+    Skip the following instruction.. if
+
+    EX9E if the key corresponding to the value in VX is pressed
+    EXA1 skips if the key corresponding to the value in VX is NOT pressed.
+
+FX07, FX15 and FX18 Timers
+
+    FX07 sets VX to the current value of the delay timer.
+    FX15 sets the delay timer to the value in VX
+    FX18 sets the sound timer to the value in VX.
+        Note there is no instruction to read the sound timer; the sound timer will simply make a beeping sound as
+        long as it is > 0.
+
+FX1E: Add to index
+    Index register I will have the value in VX added to it.
+        Set VF to 1 if I "overflows" from 0FFF to above 1000 (outside the normal range)
+
+FX0A: Get key
+    <BLOCKS>; it stops execution and waits for key input. (Decrement PC!)
+    When a key is pressed, its hexadecimal value will be put in VX and execution continues.
+
+FX29: Font character
+    The index register I is set to the address of the hexacedimal character in VX.
+
+    An 8 bit register can hold two hexadecimal numbers, but this would only point to one character.
+    The original emulator took the last nibble of VX and used that as the character
+
+FX33: Binary-coded decimal conversion
+
+    Takes the number in VX (one byte, so 0-255) and converts it to 3 decimal digits, storing them in the address I
+
+    Example: If VX contains 156 (or 9C in hex), it would put the number 1 at the address in I, 5 in I + 1, and 6 in I + 2
+
+FX55 and FX65: Store and load memory.
+
+    FX55: The value of each variable register from V0 to VX inclusive stored in successive memory addresses,
+    starting with the one that's stored in I. V0 will be stored in I, V1 in I + 1, ... VX in I + X
+
+    FX65: Does the same thing, but takes the values stored at the memory addresses and loads them into the 
+    variable registers instead.
+
+    OLD: Increment I while you work.
+    NEW: Leave I alone, use a temporary variable.
